@@ -1,7 +1,7 @@
 name: Prueba de arranque Forge (ALFA, mundo desechable)
 on:
   push:
-    branches: [development/alpha-0.1.3]
+    branches: [fix/spawn-visibility-0.1.4]
     paths:
       - .github/workflows/server-smoke.yml
       - src/**

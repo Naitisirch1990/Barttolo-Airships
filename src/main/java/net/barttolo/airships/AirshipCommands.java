@@ -6,6 +6,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -15,6 +16,7 @@ public final class AirshipCommands {
         CommandDispatcher<CommandSourceStack> d=event.getDispatcher();
         d.register(Commands.literal("airship")
             .then(Commands.literal("crear").requires(src->src.hasPermission(4)).executes(ctx->create(ctx.getSource())))
+            .then(Commands.literal("diagnostico").requires(src->src.hasPermission(2)).executes(ctx->diagnostics(ctx.getSource())))
             .then(Commands.literal("llave").requires(src->src.hasPermission(4)).executes(ctx->key(ctx.getSource())))
             .then(Commands.literal("eliminar").requires(src->src.hasPermission(4)).executes(ctx->remove(ctx.getSource())))
             .then(Commands.literal("abordar").executes(ctx->board(ctx.getSource())))
@@ -56,17 +58,42 @@ public final class AirshipCommands {
         if(ship==null) return 0;
         // The model extends roughly 9 blocks below and 23 above its origin.
         // Create only where the complete rotated ship is over loaded, unobstructed terrain.
-        double spawnY = user.getY()+24;
-        if (!AirshipSafety.isAirspaceReady(level,user.getX(),spawnY,user.getZ(),user.getYRot())) {
-            AirshipEntity.message(user,"Zona insegura: se necesita cielo libre y todos los chunks del barco cargados.");return 0;
+        double spawnY = AirshipSafety.findSpawnHeight(level,user.getX(),user.getY(),user.getZ(),user.getYRot());
+        if (Double.isNaN(spawnY)) {
+            int missing=AirshipSafety.missingFootprintChunks(level,user.getX(),user.getZ(),user.getYRot());
+            if (missing>0) AirshipEntity.message(user,"No se creó: faltan "+missing+" chunks cargados alrededor del casco (54x34). Cambia a una zona abierta y espera a que cargue.");
+            else AirshipEntity.message(user,"No se creó: no hay altura libre segura hasta 80 bloques sobre tu posición. Usa /airship diagnostico y ve a una explanada.");
+            return 0;
         }
         ship.moveTo(user.getX(),spawnY,user.getZ(),user.getYRot(),0);
-        if(!level.addFreshEntity(ship)) {AirshipEntity.message(user,"Error al crear la entidad.");return 0;}
+        if(!level.addFreshEntity(ship)) {AirshipEntity.message(user,"No se pudo registrar la entidad. Revisa latest.log.");return 0;}
         if(reg.owner==null) reg.owner=user.getUUID();
         reg.ship=ship.getUUID();reg.setDirty();
         ItemStack key=ship.makeKey();
         if(!user.getInventory().add(key)) user.drop(key,false);
-        AirshipEntity.message(user,"¡Barco creado! Recibiste la llave. Usa /airship abordar.");
+        ship.fillStarterFuel(); // A mounted creator can always maneuver downward safely.
+        boolean boarded=ship.board(user);
+        AirshipEntity.message(user,"Barco creado en X="+ship.blockPosition().getX()+" Y="+ship.blockPosition().getY()+" Z="+ship.blockPosition().getZ()+". Combustible inicial: 90 s."+(boarded ? " Estás a bordo, usa WASD/Espacio/C." : " Usa /airship abordar para subir."));
+        return 1;
+    }
+    private static int diagnostics(CommandSourceStack src) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer user=player(src);
+        MinecraftServer server=user.server;
+        AirshipRegistry reg=AirshipRegistry.get(server);
+        AirshipEntity.message(user,"Diagnóstico Alfa 0.1.4: OP4="+src.hasPermission(4)+", propietario="+(reg.owner==null?"sin asignar":reg.isOwner(user.getUUID()))+", nave registrada="+(reg.ship!=null));
+        if(reg.ship!=null) {
+            boolean loaded=false;
+            for(ServerLevel level:server.getAllLevels()) {
+                if(level.getEntity(reg.ship) instanceof AirshipEntity ship) {
+                    loaded=true;
+                    AirshipEntity.message(user,"Barco existente en dimensión "+level.dimension().location()+", X="+ship.blockPosition().getX()+" Y="+ship.blockPosition().getY()+" Z="+ship.blockPosition().getZ());
+                }
+            }
+            if(!loaded)AirshipEntity.message(user,"Hay una nave registrada, pero está en un chunk no cargado (o falta la entidad). No crees duplicados; revisa el mundo antes de recuperar.");
+        }
+        int missing=AirshipSafety.missingFootprintChunks(user.serverLevel(),user.getX(),user.getZ(),user.getYRot());
+        double altitude=AirshipSafety.findSpawnHeight(user.serverLevel(),user.getX(),user.getY(),user.getZ(),user.getYRot());
+        AirshipEntity.message(user,"Zona actual: chunks faltantes="+missing+", altura de creación="+(Double.isNaN(altitude)?"ninguna segura":String.valueOf((int)altitude))+". La nave necesita cielo despejado y chunks cargados.");
         return 1;
     }
     private static int key(CommandSourceStack src) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
