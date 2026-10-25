@@ -30,6 +30,32 @@ public final class AirshipSafety {
         }
         return true;
     }
+    /**
+     * Find a loaded, unobstructed location rather than trying only a fixed +24 Y.
+     * Read-only: never forces chunks, creates blocks, or alters RingWorld.
+     * NaN means the footprint cannot be placed safely at this X/Z.
+     */
+    public static double findSpawnHeight(ServerLevel level,double x,double playerY,double z,double yaw) {
+        int minY=(int)Math.ceil(Math.max(playerY+16,level.getMinBuildHeight()+14));
+        int maxY=(int)Math.floor(Math.min(playerY+80,level.getMaxBuildHeight()-25));
+        for (int height=minY; height<=maxY; height+=4) {
+            if (isAirspaceReady(level,x,height,z,yaw)) return height;
+        }
+        return Double.NaN;
+    }
+
+    /** Count unloaded chunks in the complete rotated model footprint for diagnostics. */
+    public static int missingFootprintChunks(ServerLevel level,double x,double z,double yaw) {
+        int hx=AirshipSafetyMath.extentX(yaw),hz=AirshipSafetyMath.extentZ(yaw);
+        int cxMin=((int)Math.floor(x-hx))>>4,cxMax=((int)Math.ceil(x+hx))>>4;
+        int czMin=((int)Math.floor(z-hz))>>4,czMax=((int)Math.ceil(z+hz))>>4;
+        int missing=0;
+        for(int cx=cxMin;cx<=cxMax;cx++)for(int cz=czMin;cz<=czMax;cz++) {
+            if(!level.getChunkSource().hasChunk(cx,cz)) missing++;
+        }
+        return missing;
+    }
+
     /** Only disembark when two body blocks are free and the ground isn't liquid. */
     public static boolean isSafeExit(ServerLevel level,BlockPos ground) {
         BlockPos feet=ground.above(), head=feet.above();
