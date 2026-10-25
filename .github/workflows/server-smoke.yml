@@ -1,0 +1,63 @@
+name: Prueba de arranque Forge (ALFA, mundo desechable)
+on:
+  push:
+    branches: [development/alpha-0.1.3]
+    paths:
+      - .github/workflows/server-smoke.yml
+      - src/**
+      - build.gradle
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    name: Arranque de servidor Forge sin RingWorld
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+      - name: Preparar mundo desechable de CI (NUNCA Barttolo.net)
+        run: |
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+          printf 'online-mode=true\nmax-players=6\ndifficulty=normal\n' > run/server.properties
+      - name: Validar que Forge arranca y reconoce el mod
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=INT --kill-after=15s 300s gradle --no-daemon runServer > /tmp/airship-server.log 2>&1 &
+          PID=$!
+          SUCCESS=0
+          for i in $(seq 1 300); do
+            if grep -Eiq 'Done \([0-9.,]+s\)!' /tmp/airship-server.log; then
+              SUCCESS=1
+              break
+            fi
+            if ! kill -0 "$PID" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          tail -n 100 /tmp/airship-server.log
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "ERROR: no se confirmó el arranque de Forge. Este JAR sigue sin probarse."
+            exit 1
+          fi
+          echo "PASS: Forge llegó a iniciar en un mundo nuevo desechable"
+          kill -INT "$PID" 2>/dev/null || true
+      - name: Adjuntar registros para diagnosticar fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registro-arranque-forge
+          path: |
+            /tmp/airship-server.log
+            run/logs/latest.log
+          if-no-files-found: warn
