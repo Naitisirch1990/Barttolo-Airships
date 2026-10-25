@@ -1,4 +1,36 @@
-# Barttolo Airships 🚢 — Alfa 0.1.3 (Forge 1.20.1)
+# Barttolo Airships — Alfa 0.1.4 (corrección de aparición)
+
+⚠️ **Compila e inicia Forge 1.20.1 en un servidor desechable, pero aún NO está validado visualmente en Minecraft con jugadores.** No instalar en el servidor principal.
+
+## Corrección de la nave invisible / no generada
+
+La Alfa 0.1.3 intentaba generar el modelo a una altura fija (+24 bloques) y rechazaba el lugar si había árboles, construcciones, terreno alto o chunks sin cargar. La 0.1.4:
+
+- Busca una altura libre entre +16 y +80 sobre el jugador, sin alterar el terreno ni cargar chunks forzosamente.
+- Informa la causa si la zona no es segura.
+- Coloca al creador directamente a bordo, con una llave nueva y **90 segundos de combustible inicial** para poder descender. La nave sigue usando carbón o lava después.
+- Añade `/airship diagnostico` (requiere OP nivel 2 o superior). El comando indica si el administrador tiene nivel OP 4, si hay un barco registrado y si faltan chunks en la zona.
+- Mantiene `/airship crear` limitado al propietario con OP nivel 4, con una única nave por servidor.
+
+### Prueba recomendada (únicamente mundo de pruebas)
+
+1. Quita cualquier archivo `Barttolo-Airships-...0.1.3...` de la carpeta `mods` del **cliente y servidor**. Coloca solamente `Barttolo-Airships-Forge-1.20.1-0.1.4-alpha.jar` en ambos.
+2. Reinicia Minecraft y Forge, entrá como OP de nivel 4 y elegí una zona extensa y despejada.
+3. Ejecutá `/airship diagnostico` y revisá si ya hay alguna nave registrada.
+4. Si no hay nave registrada, ejecutá `/airship crear`. Deberías subir automáticamente a la cubierta y recibir la llave. Utilizá **C** para descender y **V** para salir al aterrizar.
+5. Si `/airship diagnostico` indica que **ya hay una nave registrada**, no intentes crear otra ni borres los archivos de datos guardados. Envíanos el mensaje y la posición para localizarla.
+6. Si no aparece, adjuntá el chat o `logs/latest.log` para identificar el bloqueo.
+
+### Estado del proyecto
+
+- [Compilación Alfa 0.1.4](https://github.com/Naitisirch1990/Barttolo-Airships/actions/runs/40236068356)
+- [Prueba de servidor aislado Alfa 0.1.4](https://github.com/Naitisirch1990/Barttolo-Airships/actions/runs/40236068371)
+
+**Pendiente:** probar modelado/renderizado real, seis pasajeros y cofres con persistencia en mundo de pruebas.
+
+---
+
+## Documentación técnica de Alfa 0.1.3 (referencia)
 
 **Estado: COMPILA con Java 17 y ForgeGradle, pero AÚN NO VALIDADO EN JUEGO.**
 **No instalar en el servidor principal ni en el mundo original de RingWorld.**
