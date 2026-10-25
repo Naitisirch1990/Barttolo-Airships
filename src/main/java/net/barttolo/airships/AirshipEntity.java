@@ -55,6 +55,8 @@ public final class AirshipEntity extends Entity {
 
     @Override protected void defineSynchedData() {this.entityData.define(FUEL,0); this.entityData.define(CHESTS,0);}
     public int getFuel() {return this.entityData.get(FUEL);}
+    /** One-time safety reserve for a newly summoned ship, so a mounted captain can land. */
+    public void fillStarterFuel() {this.entityData.set(FUEL, 20 * 90);setChanged();}
     public boolean hasChest(int index) {return index >= 0 && index < 4 && (entityData.get(CHESTS) & (1<<index)) != 0;}
     public NonNullList<ItemStack> items() {return inventory;}
     /** Ask the world to persist cargo/fuel updates with the ship entity. */
