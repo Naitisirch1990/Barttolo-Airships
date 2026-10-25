@@ -1,0 +1,21 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All rights reserved; personal use by Barttolo.net"
+[[mods]]
+modId="barttoloairships"
+version="${file.jarVersion}"
+displayName="Barttolo Airships"
+authors="Barttolo.net"
+description='''Barco volador independiente: un modelo, máximo cinco invitados, llave, combustible y cofres virtuales. Prototipo alfa.'''
+[[dependencies.barttoloairships]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.barttoloairships]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
